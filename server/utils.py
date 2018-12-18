@@ -1,6 +1,11 @@
 # -*- coding:utf-8 -*-
 
 import settings
+from dateutil import parser
+
+
+def isodate(dateStr):
+    return parser.parse(dateStr)
 
 
 def convert(key, value):

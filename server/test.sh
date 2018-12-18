@@ -1,0 +1,2 @@
+wget -q -O - http://srv1:7711/query/get\?code\=000011\&timestamp\=20180108101957\&engine\=hbase
+wget -q -O - http://srv1:7711/query/scan\?code\=000011\&start\=20180108101957\&end\=20180108101957\&engine\=hbase

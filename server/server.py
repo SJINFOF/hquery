@@ -1,43 +1,71 @@
-from thrift import Thrift
-from thrift.transport import TSocket
-from thrift.transport import TTransport
-from thrift.protocol import TBinaryProtocol
+from __future__ import print_function
+from flask import render_template
+from flask import Flask
+from flask import request
+from flask import jsonify
+from gevent.pywsgi import WSGIServer
 
-from hbase import Hbase
-from hbase.ttypes import *
-
+import hdb
 import utils
-import settings
 
-transport = TSocket.TSocket('srv1', 9090)
+############   configurations ##############
+host = '0.0.0.0'
+port = 7711
 
-transport = TTransport.TBufferedTransport(transport)
-protocol = TBinaryProtocol.TBinaryProtocol(transport)
+############################################
 
-client = Hbase.Client(protocol)
-transport.open()
-print client.getTableNames()
+app = Flask(__name__,
+            static_folder="../frontend/dist/static",
+            template_folder="../frontend/dist")
 
-print client.getRow('hisdata30g', '00001120180102101957')
+hBaseHistoryDb = hdb.HBaseHistoryDb()
+mongoHistoryDb = None
 
-tableName = 'hisdata30g'
-startRow = '00001120180102101957'
-stopRow = '00001120180102112557'
-# Initialize a scanner to query all columns between startRow and stopRow
-scannerId = client.scannerOpenWithStop(tableName, startRow, stopRow, ['data'])
 
-# Convert results to human readable python dict
-rowList = client.scannerGetList(scannerId, settings.ScanBatchSize)
-results = []
-while rowList:
-    results.extend([utils.TResultToDict(row) for row in rowList])
-    rowList = client.scannerGetList(scannerId, settings.ScanBatchSize)
-client.scannerClose(scannerId)
+def make_response(msg='ok',
+                  errcode=0,
+                  **kwargs):
+    return jsonify(
+        msg=msg,
+        errcode=errcode,
+        **kwargs
+    )
 
-import json
 
-print json.dumps(results[0], indent=4)
-print len(results)
+@app.route("/", methods=['Get'])
+def home():
+    return render_template('index.html')
+
+
+@app.route("/query/get", methods=['GET'])
+def query_get():
+    try:
+        code = request.args['code']
+        timestamp = utils.isodate(request.args['timestamp'])
+        engine_name = request.args['engine']
+        engine = hBaseHistoryDb if engine_name == 'hbase' else mongoHistoryDb
+
+        data, timeCostSeconds = engine.get(code, timestamp)
+        return make_response(data=data, queryTime=timeCostSeconds * 1000)
+    except Exception as e:
+        return make_response(msg=str(e), errcode=-1)
+
+
+@app.route("/query/scan", methods=['GET'])
+def query_scan():
+    try:
+        code = request.args['code']
+        startTime = utils.isodate(request.args['start'])
+        endTime = utils.isodate(request.args['end'])
+        engine_name = request.args['engine']
+        engine = hBaseHistoryDb if engine_name == 'hbase' else mongoHistoryDb
+
+        data, timeCostSeconds = engine.scan(code, startTime, endTime)
+        return make_response(data=data, queryTime=timeCostSeconds * 1000)
+    except Exception as e:
+        return make_response(msg=str(e), errcode=-1)
+
 
 if __name__ == '__main__':
-    pass
+    http_server = WSGIServer((host, port), app)
+    http_server.serve_forever()
