@@ -2,15 +2,27 @@ package services
 
 
 object HBaseDBSpec {
+
+  import Utils._
+
   def main(args: Array[String]): Unit = {
     val db = new HBaseDB()
 
-    val get = db.dbGet(Utils.exampleRowKey, fetchResult = false)
-    println(s"Got ${get.count} records")
-    println(s"Duration: ${get.time} ms")
+    val get = db.dbGet(Utils.exampleRowKey)
 
-    val scan = db.dbScan(Utils.exampleStartRowKey, Utils.exampleEndRowKey, fetchResult = false)
-    println(s"Got ${scan.count} records")
-    println(s"Duration: ${scan.time} ms")
+    val (size, duration) = timed {
+      get.size
+    }
+
+    println(s"Got $size records")
+    println(s"Duration: $duration ms")
+
+    val scan = db.dbScan(Utils.exampleStartRowKey, Utils.exampleEndRowKey)
+    val (size1, duration1) = timed {
+      scan.size
+    }
+
+    println(s"Got $size1 records")
+    println(s"Duration: $duration1 ms")
   }
 }

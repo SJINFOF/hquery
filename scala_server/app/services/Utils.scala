@@ -5,7 +5,7 @@ object Utils {
   val exampleStartRowKey = "0000112018010309250000001"
   val exampleEndRowKey = "0000112018010309280000001"
 
-  def time[T](f: => T): (T, Long) = {
+  def timed[T](f: => T): (T, Long) = {
     val start = System.currentTimeMillis()
     val ret = f
     val end = System.currentTimeMillis()
