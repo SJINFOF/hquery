@@ -1,4 +1,11 @@
+logs
+target
 .idea
+.idea_modules
+.classpath
+.project
+.settings
+RUNNING_PID
 *.iml
 # Byte-compiled / optimized / DLL files
 __pycache__/
